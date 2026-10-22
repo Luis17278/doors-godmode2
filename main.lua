@@ -52,6 +52,7 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = true -- Começa aberto por padrão
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 -- Barra de Título Topo
@@ -89,7 +90,6 @@ local Abas = {}
 local AbaAtiva = nil
 
 local function CriarAba(nome)
-    -- Botão da Aba Lateral
     local TabButton = Instance.new("TextButton", SideBar)
     TabButton.Size = UDim2.new(1, 0, 0, 35)
     TabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -99,7 +99,6 @@ local function CriarAba(nome)
     TabButton.TextSize = 14
     Instance.new("UICorner", TabButton).CornerRadius = UDim.new(0, 6)
     
-    -- Painel de Conteúdo Interno da Aba
     local TabContent = Instance.new("ScrollingFrame", ContentContainer)
     TabContent.Size = UDim2.new(1, 0, 1, 0)
     TabContent.BackgroundTransparency = 1
@@ -110,7 +109,6 @@ local function CriarAba(nome)
     local ContentLayout = Instance.new("UIListLayout", TabContent)
     ContentLayout.Padding = UDim.new(0, 8)
     
-    -- Mecânica de alternar abas ao clicar
     TabButton.MouseButton1Click:Connect(function()
         if AbaAtiva then
             AbaAtiva.Content.Visible = false
@@ -118,12 +116,11 @@ local function CriarAba(nome)
             AbaAtiva.Button.TextColor3 = Color3.fromRGB(180, 180, 180)
         end
         TabContent.Visible = true
-        TabButton.BackgroundColor3 = Color3.fromRGB(0, 140, 90)
+        TabButton.BackgroundColor3 = Color3.fromRGB(180, 30, 30) -- Cor ativa alterada para combinar com o botão flutuante
         TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         AbaAtiva = {Button = TabButton, Content = TabContent}
     end)
     
-    -- Criação de Toggles internos para cada aba específica
     local function CreateToggle(texto, callback)
         local ativo = false
         local Button = Instance.new("TextButton", TabContent)
@@ -137,7 +134,7 @@ local function CriarAba(nome)
         
         Button.MouseButton1Click:Connect(function()
             ativo = not ativo
-            Button.BackgroundColor3 = ativo and Color3.fromRGB(0, 140, 90) or Color3.fromRGB(45, 45, 45)
+            Button.BackgroundColor3 = ativo and Color3.fromRGB(180, 30, 30) or Color3.fromRGB(45, 45, 45)
             Button.Text = texto .. (ativo and " : [ ON ]" or " : [ OFF ]")
             Button.TextColor3 = ativo and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
             callback(ativo)
@@ -148,40 +145,55 @@ local function CriarAba(nome)
     return CreateToggle
 end
 
--- Inicializando as 3 Abas solicitadas
 local AddTogglePrincipal = CriarAba("🛡️ Principal")
 local AddToggleMovimento = CriarAba("⚡ Movimento")
 local AddToggleVisuais   = CriarAba("👁️ Visuais")
 
--- Ativa a primeira aba por padrão
 Abas[1].Content.Visible = true
-Abas[1].Button.BackgroundColor3 = Color3.fromRGB(0, 140, 90)
+Abas[1].Button.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
 Abas[1].Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 AbaAtiva = {Button = Abas[1].Button, Content = Abas[1].Content}
 
 -- =============================================================================
--- 4. CONTROLE DE ABRIR E FECHAR O MENU (TECLA E VIRTUAL MOBILE)
+-- 4. BOTÃO FLUTUANTE EXCLUSIVO PARA MOBILE (CORREÇÃO DE TELA)
 -- =============================================================================
 local MenuVisivel = true
+
+local MobileTab = Instance.new("TextButton", ScreenGui)
+MobileTab.Name = "MobileToggleBtn"
+MobileTab.Size = UDim2.new(0, 60, 0, 60)
+MobileTab.Position = UDim2.new(0, 15, 0, 120) -- Posicionado na lateral esquerda, fácil de alcançar
+MobileTab.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MobileTab.Text = "OPEN"
+MobileTab.TextColor3 = Color3.fromRGB(180, 30, 30)
+MobileTab.Font = Enum.Font.SourceSansBold
+MobileTab.TextSize = 14
+MobileTab.BorderSizePixel = 0
+MobileTab.Active = true
+MobileTab.Draggable = true -- Você pode arrastar o botão para onde quiser se ele atrapalhar o jogo
+
+local MobileCorner = Instance.new("UICorner", MobileTab)
+MobileCorner.CornerRadius = UDim.new(0, 30) -- Deixa o botão perfeitamente redondo
+
+-- Efeito visual de borda brilhante para o botão flutuante
+local UIStroke = Instance.new("UIStroke", MobileTab)
+UIStroke.Color = Color3.fromRGB(180, 30, 30)
+UIStroke.Thickness = 2
+
+MobileTab.MouseButton1Click:Connect(function()
+    MenuVisivel = not MenuVisivel
+    MainFrame.Visible = MenuVisivel
+    MobileTab.Text = MenuVisivel and "CLOSE" or "OPEN"
+end)
+
+-- Mantém o suporte ao teclado (Teça L) caso esteja em emulador
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.L then
         MenuVisivel = not MenuVisivel
         MainFrame.Visible = MenuVisivel
+        MobileTab.Text = MenuVisivel and "CLOSE" or "OPEN"
     end
-end)
-
-local MobileTab = Instance.new("TextButton", ScreenGui)
-MobileTab.Size = UDim2.new(0, 70, 0, 30)
-MobileTab.Position = UDim2.new(0, 10, 0, 10)
-MobileTab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-MobileTab.Text = "Abrir/Fechar (L)"
-MobileTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-MobileTab.TextSize = 11
-Instance.new("UICorner", MobileTab).CornerRadius = UDim.new(0, 5)
-MobileTab.MouseButton1Click:Connect(function()
-    MenuVisivel = not MenuVisivel
-    MainFrame.Visible = MenuVisivel
 end)
 
 -- =============================================================================
@@ -244,17 +256,3 @@ AddToggleMovimento("Modo de Voo (Fly)", function(state)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
-    if not state then
-        if flyBodyPos then flyBodyPos:Destroy() flyBodyPos = nil end
-        if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = false end
-        return
-    end
-    
-    if root then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = true end
-        
-        flyBodyGyro = Instance.new("BodyGyro", root)
-        flyBodyGyro.P = 9e4
