@@ -1,5 +1,5 @@
 -- =============================================================================
--- INTERFACE E SISTEMA DE CHEATS CORRIGIDO - MOBILE (V2)
+-- INTERFACE E SISTEMA DE CHEATS CORRIGIDO - MOBILE PRODUCTION
 -- =============================================================================
 local CHAVE_CORRETA = "LUIS-DOORS-2026"
 local ChaveInserida = "LUIS-DOORS-2026"
@@ -10,7 +10,7 @@ _G.DoorsHubMaster = {
     GodMode = false,
     ESP = false,
     Speed = false,
-    SpeedValue = 22, -- Valor seguro contra lagback
+    SpeedValue = 22, -- Limiar de estabilidade para evitar lagback
     Fly = false,
     FlySpeed = 30,
     Noclip = false
@@ -23,13 +23,15 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local TargetGui = LocalPlayer:WaitForChild("PlayerGui")
 
-if TargetGui:FindFirstChild("LuisDoorsMasterHub") then TargetGui.LuisDoorsMasterHub:Destroy() end
+if TargetGui:FindFirstChild("LuisDoorsMasterHub") then 
+    TargetGui.LuisDoorsMasterHub:Destroy() 
+end
 
 local ScreenGui = Instance.new("ScreenGui", TargetGui)
 ScreenGui.Name = "LuisDoorsMasterHub"
 ScreenGui.ResetOnSpawn = false
 
--- Janela Principal
+-- Janela Principal (Menu)
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 440, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -220, 0.5, -140)
@@ -42,7 +44,7 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local TitleLabel = Instance.new("TextLabel", MainFrame)
 TitleLabel.Size = UDim2.new(1, 0, 0, 35)
 TitleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-TitleLabel.Text = "  DOORS MASTER HUB - V2 FIXED"
+TitleLabel.Text = "  DOORS MASTER HUB - V2 FINAL"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.TextSize = 14
@@ -123,12 +125,12 @@ local AddTogglePrincipal = CriarAba("🛡️ Principal")
 local AddToggleMovimento = CriarAba("⚡ Movimento")
 local AddToggleVisuais   = CriarAba("👁️ Visuais")
 
-Abas[1].Content.Visible = true
-Abas[1].Button.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-Abas[1].Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-AbaAtiva = {Button = Abas[1].Button, Content = Abas[1].Content}
+Abas.Content.Visible = true
+Abas.Button.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+Abas.Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+AbaAtiva = {Button = Abas.Button, Content = Abas.Content}
 
--- Botão de Minimizar
+-- Botão de Minimizar (Abre/Fecha)
 local MenuVisivel = true
 local MobileTab = Instance.new("TextButton", ScreenGui)
 MobileTab.Size = UDim2.new(0, 50, 0, 28)
@@ -147,7 +149,11 @@ MobileTab.MouseButton1Click:Connect(function()
     MainFrame.Visible = MenuVisivel
 end)
 
--- 1. CORREÇÃO GOD MODE COMPLETO
+-- =============================================================================
+-- LOGICAS DO MOTOR DE CHEATS
+-- =============================================================================
+
+-- 1. ESTRUTURA GOD MODE (RUSH/AMBUSH EXCLUSION VIA SAFESTATE)
 AddTogglePrincipal("God Mode Inteligente", function(state)
     _G.DoorsHubMaster.GodMode = state
 end)
@@ -187,7 +193,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 2. CORREÇÃO DO SPEED
+-- 2. AJUSTE DE VELOCIDADE ESTÁVEL
 AddToggleMovimento("Velocidade Segura", function(state)
     _G.DoorsHubMaster.Speed = state
 end)
@@ -204,7 +210,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. NOCLIP SEGURO
+-- 3. MECÂNICA NOCLIP
 AddToggleMovimento("Noclip Seguro", function(state)
     _G.DoorsHubMaster.Noclip = state
 end)
@@ -219,7 +225,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- 4. FLY PARA MOBILE
+-- 4. CONTROLE DE VOO VIA VELOCIDADE LINEAR (FLY)
 local flyAttachment, flyVelocity
 AddToggleMovimento("Fly Funcional Mobile", function(state)
     _G.DoorsHubMaster.Fly = state
@@ -229,7 +235,9 @@ AddToggleMovimento("Fly Funcional Mobile", function(state)
     if not state then
         if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
         if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
-        if char and char:FindFirstChildOfClass("Humanoid") then char:FindFirstChildOfClass("Humanoid").PlatformStand = false end
+        if char and char:FindFirstChildOfClass("Humanoid") then 
+            char:FindFirstChildOfClass("Humanoid").PlatformStand = false 
+        end
         return
     end
     
@@ -256,16 +264,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 5. VISUAIS (BOX ESP)
+-- 5. VISUAIS (PLAYER ESP)
 local espBoxes = {}
 AddToggleVisuais("Box ESP", function(state)
     _G.DoorsHubMaster.ESP = state
     if not state then
-        for _, box in pairs(espBoxes) do box:Destroy() end
-        table.clear(espBoxes)
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if not _G.DoorsHubMaster.ESP then return end
-    for _, p in ipairs(Players:GetPlayers()) do
