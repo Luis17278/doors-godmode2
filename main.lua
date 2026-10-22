@@ -1,130 +1,260 @@
 -- =============================================================================
--- FUNDAÇÃO MODULAR - DOORS HUB DE ESTUDOS
+-- 1. SISTEMA DE KEYS INTEGRADO
 -- =============================================================================
+local CHAVE_CORRETA = "LUIS-DOORS-2026"
+local ChaveInserida = "LUIS-DOORS-2026"
+
+if ChaveInserida ~= CHAVE_CORRETA then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Acesso Negado!",
+        Text = "Chave inválida. Script encerrado.",
+        Duration = 5
+    })
+    return
+end
+
+-- =============================================================================
+-- 2. CONFIGURAÇÕES E ESTADOS GLOBAIS
+-- =============================================================================
+_G.DoorsHubMaster = {
+    GodMode = false,
+    ESP = false,
+    Speed = false,
+    SpeedValue = 32,
+    Fly = false,
+    FlySpeed = 50,
+    Noclip = false
+}
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- Tabela Global de Configurações (Centraliza o estado do Script)
-_G.DoorsHubConfig = {
-    GodModeStyle = false,
-    VisualBright = false,
-    AutoScreechClear = false,
-    CurrentFloor = 1
-}
-
--- =============================================================================
--- DETECÇÃO DINÂMICA DE FLOORS (HOTEL VS. MINES)
--- =============================================================================
-local function DetectFloor()
-    -- Analisa o cenário atual para determinar o comportamento do script
-    if Workspace:FindFirstChild("CurrentRooms") then
-        local firstRoom = Workspace.CurrentRooms:FindFirstChild("0")
-        if firstRoom and firstRoom:FindFirstChild("Minecart") or Workspace:FindFirstChild("Mines") then
-            _G.DoorsHubConfig.CurrentFloor = 2 -- Andar 2: The Mines
-        else
-            _G.DoorsHubConfig.CurrentFloor = 1 -- Andar 1: The Hotel
-        end
-    end
-end
-DetectFloor()
-
--- =============================================================================
--- MÓDULO DE INTERFACES NATIVAS (ESTRUTURA DE BOTÕES)
--- =============================================================================
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
-if CoreGui:FindFirstChild("DoorsHubMaster") then CoreGui.DoorsHubMaster:Destroy() end
 
+if CoreGui:FindFirstChild("LuisDoorsMasterHub") then
+    CoreGui.LuisDoorsMasterHub:Destroy()
+end
+
+-- =============================================================================
+-- 3. INTERFACE GRÁFICA DO ZERO COM ABAS (GUI NATIVA)
+-- =============================================================================
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "DoorsHubMaster"
+ScreenGui.Name = "LuisDoorsMasterHub"
+ScreenGui.ResetOnSpawn = false
 
+-- Janela Principal
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 360, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -180, 0.4, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 480, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -240, 0.3, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
-local Corner = Instance.new("UICorner", MainFrame)
+-- Barra de Título Topo
+local TitleLabel = Instance.new("TextLabel", MainFrame)
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TitleLabel.Text = "  DOORS MASTER HUB - COMPLETO MULTI-ABAS"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 15
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+local TitleCorner = Instance.new("UICorner", TitleLabel)
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Text = "  DOORS MASTER HUB - FLOOR " .. tostring(_G.DoorsHubConfig.CurrentFloor)
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
-Title.TextXAlignment = Enum.TextXAlignment.Left
+-- Painel Lateral Esquerdo (Menu de Abas)
+local SideBar = Instance.new("Frame", MainFrame)
+SideBar.Name = "SideBar"
+SideBar.Size = UDim2.new(0, 130, 1, -45)
+SideBar.Position = UDim2.new(0, 5, 0, 45)
+SideBar.BackgroundTransparency = 1
 
--- Container para organizar os Toggles
-local List = Instance.new("Frame", MainFrame)
-List.Size = UDim2.new(1, -20, 1, -60)
-List.Position = UDim2.new(0, 10, 0, 50)
-List.BackgroundTransparency = 1
+local SideLayout = Instance.new("UIListLayout", SideBar)
+SideLayout.Padding = UDim.new(0, 5)
 
-local Layout = Instance.new("UIListLayout", List)
-Layout.Padding = UDim.new(0, 8)
+-- Container Direita (Exibe o Conteúdo da Aba Ativa)
+local ContentContainer = Instance.new("Frame", MainFrame)
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Size = UDim2.new(1, -150, 1, -55)
+ContentContainer.Position = UDim2.new(0, 140, 0, 50)
+ContentContainer.BackgroundTransparency = 1
 
--- Função auxiliar para gerar opções no Menu
-local function CreateToggle(name, callback)
-    local active = false
-    local btn = Instance.new("TextButton", List)
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.Text = name .. " [OFF]"
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 14
+-- =============================================================================
+-- GERENCIADOR DE ABAS DINÂMICO
+-- =============================================================================
+local Abas = {}
+local AbaAtiva = nil
+
+local function CriarAba(nome)
+    -- Botão da Aba Lateral
+    local TabButton = Instance.new("TextButton", SideBar)
+    TabButton.Size = UDim2.new(1, 0, 0, 35)
+    TabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    TabButton.Text = nome
+    TabButton.TextColor3 = Color3.fromRGB(180, 180, 180)
+    TabButton.Font = Enum.Font.SourceSansBold
+    TabButton.TextSize = 14
+    Instance.new("UICorner", TabButton).CornerRadius = UDim.new(0, 6)
     
-    local btnCorner = Instance.new("UICorner", btn)
+    -- Painel de Conteúdo Interno da Aba
+    local TabContent = Instance.new("ScrollingFrame", ContentContainer)
+    TabContent.Size = UDim2.new(1, 0, 1, 0)
+    TabContent.BackgroundTransparency = 1
+    TabContent.Visible = false
+    TabContent.CanvasSize = UDim2.new(0, 0, 0, 400)
+    TabContent.ScrollBarThickness = 2
     
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(50, 50, 50)
-        btn.Text = name .. (active and " [ON]" or " [OFF]")
-        btn.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
-        callback(active)
+    local ContentLayout = Instance.new("UIListLayout", TabContent)
+    ContentLayout.Padding = UDim.new(0, 8)
+    
+    -- Mecânica de alternar abas ao clicar
+    TabButton.MouseButton1Click:Connect(function()
+        if AbaAtiva then
+            AbaAtiva.Content.Visible = false
+            AbaAtiva.Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            AbaAtiva.Button.TextColor3 = Color3.fromRGB(180, 180, 180)
+        end
+        TabContent.Visible = true
+        TabButton.BackgroundColor3 = Color3.fromRGB(0, 140, 90)
+        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        AbaAtiva = {Button = TabButton, Content = TabContent}
     end)
+    
+    -- Criação de Toggles internos para cada aba específica
+    local function CreateToggle(texto, callback)
+        local ativo = false
+        local Button = Instance.new("TextButton", TabContent)
+        Button.Size = UDim2.new(1, -5, 0, 38)
+        Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        Button.Text = texto .. " : [ OFF ]"
+        Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Button.Font = Enum.Font.SourceSans
+        Button.TextSize = 14
+        Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 5)
+        
+        Button.MouseButton1Click:Connect(function()
+            ativo = not ativo
+            Button.BackgroundColor3 = ativo and Color3.fromRGB(0, 140, 90) or Color3.fromRGB(45, 45, 45)
+            Button.Text = texto .. (ativo and " : [ ON ]" or " : [ OFF ]")
+            Button.TextColor3 = ativo and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+            callback(ativo)
+        end)
+    end
+    
+    table.insert(Abas, {Button = TabButton, Content = TabContent, CreateToggle = CreateToggle})
+    return CreateToggle
 end
 
--- =============================================================================
--- LOGIC SUB-SYSTEMS (EVENT-BASED)
--- =============================================================================
+-- Inicializando as 3 Abas solicitadas
+local AddTogglePrincipal = CriarAba("🛡️ Principal")
+local AddToggleMovimento = CriarAba("⚡ Movimento")
+local AddToggleVisuais   = CriarAba("👁️ Visuais")
 
--- Controle de Iluminação Ambiente Local
-game:GetService("RunService").RenderStepped:Connect(function()
-    if _G.DoorsHubConfig.VisualBright then
-        game:GetService("Lighting").Ambient = Color3.fromRGB(255, 255, 255)
+-- Ativa a primeira aba por padrão
+Abas[1].Content.Visible = true
+Abas[1].Button.BackgroundColor3 = Color3.fromRGB(0, 140, 90)
+Abas[1].Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+AbaAtiva = {Button = Abas[1].Button, Content = Abas[1].Content}
+
+-- =============================================================================
+-- 4. CONTROLE DE ABRIR E FECHAR O MENU (TECLA E VIRTUAL MOBILE)
+-- =============================================================================
+local MenuVisivel = true
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.L then
+        MenuVisivel = not MenuVisivel
+        MainFrame.Visible = MenuVisivel
     end
 end)
 
--- Inclusão dos Toggles Funcionais na Interface
-CreateToggle("Modo de Iluminação (FullBright)", function(state)
-    _G.DoorsHubConfig.VisualBright = state
+local MobileTab = Instance.new("TextButton", ScreenGui)
+MobileTab.Size = UDim2.new(0, 70, 0, 30)
+MobileTab.Position = UDim2.new(0, 10, 0, 10)
+MobileTab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MobileTab.Text = "Abrir/Fechar (L)"
+MobileTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+MobileTab.TextSize = 11
+Instance.new("UICorner", MobileTab).CornerRadius = UDim.new(0, 5)
+MobileTab.MouseButton1Click:Connect(function()
+    MenuVisivel = not MenuVisivel
+    MainFrame.Visible = MenuVisivel
 end)
 
-CreateToggle("Remover Limitações Locais (Character State)", function(state)
-    _G.DoorsHubConfig.GodModeStyle = state
+-- =============================================================================
+-- 5. ATRIBUIÇÃO DAS FUNÇÕES DENTRO DAS RESPECTIVAS ABAS
+-- =============================================================================
+
+-- --- ABA 1: PRINCIPAL ---
+AddTogglePrincipal("God Mode (Exceto Figure/Seek)", function(state)
+    _G.DoorsHubMaster.GodMode = state
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not _G.DoorsHubMaster.GodMode then return end
     local char = LocalPlayer.Character
-    if char and state then
-        local hum = char:WaitForChild("Humanoid", 5)
-        if hum then
-            -- Exemplo de desativação de estado de queda/morte local
-            hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+    if not char then return end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false) end
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name ~= "Figure" and obj.Name ~= "Seek" then
+            if obj:IsA("TouchTransmitter") or obj:IsA("TouchInterest") then
+                local parent = obj.Parent
+                if parent and parent:IsA("BasePart") and LocalPlayer:DistanceFromCharacter(parent.Position) < 20 then
+                    parent.CanTouch = false
+                end
+            end
         end
     end
 end)
 
-CreateToggle("Limpeza de Entidades Clientes (Screech)", function(state)
-    _G.DoorsHubConfig.AutoScreechClear = state
+-- --- ABA 2: MOVIMENTAÇÃO ---
+AddToggleMovimento("Velocidade Rápida (Speed)", function(state)
+    _G.DoorsHubMaster.Speed = state
 end)
 
--- Ouvinte de instâncias para lidar com o comportamento do Screech
-Workspace.DescendantAdded:Connect(function(descendant)
-    if _G.DoorsHubConfig.AutoScreechClear and descendant.Name == "Screech" then
-        task.wait()
-        descendant:Destroy()
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and _G.DoorsHubMaster.Speed then
+        hum.WalkSpeed = _G.DoorsHubMaster.SpeedValue
     end
 end)
+
+AddToggleMovimento("Atravessar Paredes (Noclip)", function(state)
+    _G.DoorsHubMaster.Noclip = state
+end)
+
+RunService.Stepped:Connect(function()
+    if _G.DoorsHubMaster.Noclip and LocalPlayer.Character then
+        for _, child in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if child:IsA("BasePart") then child.CanCollide = false end
+        end
+    end
+end)
+
+local flyBodyPos, flyBodyGyro
+AddToggleMovimento("Modo de Voo (Fly)", function(state)
+    _G.DoorsHubMaster.Fly = state
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if not state then
+        if flyBodyPos then flyBodyPos:Destroy() flyBodyPos = nil end
+        if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
+        return
+    end
+    
+    if root then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = true end
+        
+        flyBodyGyro = Instance.new("BodyGyro", root)
+        flyBodyGyro.P = 9e4
