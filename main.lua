@@ -1,5 +1,5 @@
 -- =============================================================================
--- INTERFACE E SISTEMA DE CHEATS CORRIGIDO - MOBILE
+-- INTERFACE E SISTEMA DE CHEATS CORRIGIDO - MOBILE (V2)
 -- =============================================================================
 local CHAVE_CORRETA = "LUIS-DOORS-2026"
 local ChaveInserida = "LUIS-DOORS-2026"
@@ -10,7 +10,7 @@ _G.DoorsHubMaster = {
     GodMode = false,
     ESP = false,
     Speed = false,
-    SpeedValue = 22, -- Valor seguro para não dar lagback
+    SpeedValue = 22, -- Valor seguro contra lagback
     Fly = false,
     FlySpeed = 30,
     Noclip = false
@@ -42,7 +42,7 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local TitleLabel = Instance.new("TextLabel", MainFrame)
 TitleLabel.Size = UDim2.new(1, 0, 0, 35)
 TitleLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-TitleLabel.Text = "  DOORS MASTER HUB - FIX VERSION"
+TitleLabel.Text = "  DOORS MASTER HUB - V2 FIXED"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.TextSize = 14
@@ -123,10 +123,10 @@ local AddTogglePrincipal = CriarAba("🛡️ Principal")
 local AddToggleMovimento = CriarAba("⚡ Movimento")
 local AddToggleVisuais   = CriarAba("👁️ Visuais")
 
-Abas.Content.Visible = true
-Abas.Button.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-Abas.Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-AbaAtiva = {Button = Abas.Button, Content = Abas.Content}
+Abas[1].Content.Visible = true
+Abas[1].Button.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+Abas[1].Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+AbaAtiva = {Button = Abas[1].Button, Content = Abas[1].Content}
 
 -- Botão de Minimizar
 local MenuVisivel = true
@@ -147,26 +147,25 @@ MobileTab.MouseButton1Click:Connect(function()
     MainFrame.Visible = MenuVisivel
 end)
 
--- =============================================================================
--- LOGICAS CORRIGIDAS (ANTI-LAGBACK E DETECÇÃO SELEÇÃO)
--- =============================================================================
-
--- 1. CORREÇÃO GOD MODE COMPLETO (INCLUINDO RUSH/AMBUSH SEM TELEPORTE)
+-- 1. CORREÇÃO GOD MODE COMPLETO
 AddTogglePrincipal("God Mode Inteligente", function(state)
     _G.DoorsHubMaster.GodMode = state
 end)
 
 Workspace.DescendantAdded:Connect(function(descendant)
     if not _G.DoorsHubMaster.GodMode then return end
-    -- Se Rush ou Ambush aparecerem, removemos a capacidade deles causarem dano local
     if descendant.Name:find("Rush") or descendant.Name:find("Ambush") then
         task.wait(0.1)
-        for _, child in ipairs(descendant:GetDescendants()) do
-            if child:IsA("BasePart") then
-                child.CanCollide = false
-                child.TouchBoxes:Destroy() rescue nil
+        pcall(function()
+            for _, child in ipairs(descendant:GetDescendants()) do
+                if child:IsA("BasePart") then
+                    child.CanCollide = false
+                    if child:FindFirstChild("TouchBoxes") then
+                        child.TouchBoxes:Destroy()
+                    end
+                end
             end
-        end
+        end)
     end
 end)
 
@@ -177,7 +176,6 @@ RunService.Heartbeat:Connect(function()
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false) end
         
-        -- Ignora hitboxes normais exceto Figure e Seek
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj.Name ~= "Figure" and obj.Name ~= "Seek" and (obj:IsA("TouchTransmitter") or obj:IsA("TouchInterest")) then
                 local p = obj.Parent
@@ -189,7 +187,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 2. CORREÇÃO DO SPEED (ESTÁVEL CONTRA TELEPORTE)
+-- 2. CORREÇÃO DO SPEED
 AddToggleMovimento("Velocidade Segura", function(state)
     _G.DoorsHubMaster.Speed = state
 end)
@@ -206,7 +204,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. CORREÇÃO NOCLIP POR PROXIMIDADE (SEM QUEDA NO VÁCUO)
+-- 3. NOCLIP SEGURO
 AddToggleMovimento("Noclip Seguro", function(state)
     _G.DoorsHubMaster.Noclip = state
 end)
@@ -218,20 +216,10 @@ RunService.Stepped:Connect(function()
                 child.CanCollide = false
             end
         end
-        -- Remove colisão apenas de paredes muito grudadas ao corpo
-        for _, room in ipairs(Workspace:GetDescendants()) do
-            if room.Name == "Walls" or room.Name == "Door" then
-                for _, wall in ipairs(room:GetDescendants()) do
-                    if wall:IsA("BasePart") and LocalPlayer:DistanceFromCharacter(wall.Position) < 8 then
-                        wall.CanCollide = false
-                    end
-                end
-            end
-        end
     end
 end)
 
--- 4. CORREÇÃO FLY ENGINE PARA MOBILE (USANDO VELOCIDADE LINEAR)
+-- 4. FLY PARA MOBILE
 local flyAttachment, flyVelocity
 AddToggleMovimento("Fly Funcional Mobile", function(state)
     _G.DoorsHubMaster.Fly = state
@@ -256,3 +244,28 @@ AddToggleMovimento("Fly Funcional Mobile", function(state)
 end)
 
 RunService.RenderStepped:Connect(function()
+    if _G.DoorsHubMaster.Fly and flyVelocity and LocalPlayer.Character then
+        local camera = Workspace.CurrentCamera
+        if camera then
+            flyVelocity.VectorVelocity = camera.CFrame.LookVector * _G.DoorsHubMaster.FlySpeed
+        end
+    else
+        if flyVelocity and not _G.DoorsHubMaster.Fly then
+            flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+end)
+
+-- 5. VISUAIS (BOX ESP)
+local espBoxes = {}
+AddToggleVisuais("Box ESP", function(state)
+    _G.DoorsHubMaster.ESP = state
+    if not state then
+        for _, box in pairs(espBoxes) do box:Destroy() end
+        table.clear(espBoxes)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not _G.DoorsHubMaster.ESP then return end
+    for _, p in ipairs(Players:GetPlayers()) do
