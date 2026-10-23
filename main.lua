@@ -268,3 +268,82 @@ end)
 local espBoxes = {}
 AddToggleVisuais("Box ESP", function(state)
     _G.DoorsHubMaster.ESP = state
+
+            for _, child in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if child:IsA("BasePart") then
+                child.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 4. CONTROLE DE VOO VIA VELOCIDADE LINEAR (FLY)
+local flyAttachment, flyVelocity
+AddToggleMovimento("Fly Funcional Mobile", function(state)
+    _G.DoorsHubMaster.Fly = state
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if not state then
+        if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+        if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
+        if char and char:FindFirstChildOfClass("Humanoid") then 
+            char:FindFirstChildOfClass("Humanoid").PlatformStand = false 
+        end
+        return
+    end
+    
+    if root then
+        char:FindFirstChildOfClass("Humanoid").PlatformStand = true
+        flyAttachment = Instance.new("Attachment", root)
+        flyVelocity = Instance.new("LinearVelocity", root)
+        flyVelocity.Attachment0 = flyAttachment
+        flyVelocity.MaxForce = 9e9
+        flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if _G.DoorsHubMaster.Fly and flyVelocity and LocalPlayer.Character then
+        local camera = Workspace.CurrentCamera
+        if camera then
+            flyVelocity.VectorVelocity = camera.CFrame.LookVector * _G.DoorsHubMaster.FlySpeed
+        end
+    else
+        if flyVelocity and not _G.DoorsHubMaster.Fly then
+            flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+end)
+
+-- 5. VISUAIS (PLAYER ESP)
+local espBoxes = {}
+AddToggleVisuais("Box ESP", function(state)
+    _G.DoorsHubMaster.ESP = state
+    if not state then
+        for _, box in pairs(espBoxes) do box:Destroy() end
+        table.clear(espBoxes)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not _G.DoorsHubMaster.ESP then return end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local root = p.Character.HumanoidRootPart
+            if not espBoxes[p] then
+                local box = Instance.new("BoxHandleAdornment")
+                box.Size = Vector3.new(4, 6, 4)
+                box.Color3 = Color3.fromRGB(200, 40, 40)
+                box.AlwaysOnTop = true
+                box.ZIndex = 10
+                box.Adornee = root
+                box.Parent = ScreenGui
+                espBoxes[p] = box
+            end
+        elseif espBoxes[p] and (not p.Character or not p.Character:Parent()) then
+            espBoxes[p]:Destroy()
+            espBoxes[p] = nil
+        end
+    end
+end)
