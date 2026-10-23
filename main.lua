@@ -1,5 +1,5 @@
 -- =============================================================================
--- INTERFACE E SISTEMA DE CHEATS CORRIGIDO - MOBILE PRODUCTION
+-- INTERFACE E SISTEMA DE CHEATS CORRIGIDO - MOBILE PRODUCTION FINAL
 -- =============================================================================
 local CHAVE_CORRETA = "LUIS-DOORS-2026"
 local ChaveInserida = "LUIS-DOORS-2026"
@@ -125,10 +125,10 @@ local AddTogglePrincipal = CriarAba("🛡️ Principal")
 local AddToggleMovimento = CriarAba("⚡ Movimento")
 local AddToggleVisuais   = CriarAba("👁️ Visuais")
 
-Abas.Content.Visible = true
-Abas.Button.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-Abas.Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-AbaAtiva = {Button = Abas.Button, Content = Abas.Content}
+Abas[1].Content.Visible = true
+Abas[1].Button.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+Abas[1].Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+AbaAtiva = {Button = Abas[1].Button, Content = Abas[1].Content}
 
 -- Botão de Minimizar (Abre/Fecha)
 local MenuVisivel = true
@@ -268,4 +268,3 @@ end)
 local espBoxes = {}
 AddToggleVisuais("Box ESP", function(state)
     _G.DoorsHubMaster.ESP = state
-    if not state then
